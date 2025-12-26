@@ -299,7 +299,9 @@ CREATE TABLE `vpn_profiles` (
   `type` enum('Premium','Freemium') NOT NULL DEFAULT 'Premium',
   `created_at` timestamp NULL DEFAULT current_timestamp(),
   `icon_path` varchar(255) DEFAULT NULL,
-  `promo_id` int(11) DEFAULT NULL
+  `promo_id` int(11) DEFAULT NULL,
+  `management_ip` varchar(255) DEFAULT NULL,
+  `management_port` int(11) DEFAULT NULL
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_unicode_ci;
 
 --

@@ -10,6 +10,21 @@ try {
     $pdo->exec($sql);
     echo "Database tables created successfully<br>";
 
+    // Add new columns to vpn_profiles if they don't exist
+    $columns = [
+        'management_ip' => 'VARCHAR(255) DEFAULT NULL',
+        'management_port' => 'INT(11) DEFAULT NULL'
+    ];
+
+    foreach ($columns as $column => $definition) {
+        $stmt = $pdo->prepare("SHOW COLUMNS FROM `vpn_profiles` LIKE :column");
+        $stmt->execute(['column' => $column]);
+        if ($stmt->rowCount() == 0) {
+            $pdo->exec("ALTER TABLE `vpn_profiles` ADD COLUMN `$column` $definition");
+            echo "Column `$column` added to `vpn_profiles` table.<br>";
+        }
+    }
+
     // Check if the admin user already exists
     $stmt = $pdo->prepare('SELECT id FROM users WHERE username = :username');
     $stmt->execute(['username' => 'admin']);
