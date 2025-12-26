@@ -8,11 +8,6 @@ if (!isset($_SESSION['loggedin']) || $_SESSION['loggedin'] !== true || $_SESSION
 require_once 'db_config.php';
 require_once 'utils.php';
 
-// Check if the configurations table exists and run the migration if it does
-$stmt = $pdo->query("SHOW TABLES LIKE 'configurations'");
-if ($stmt->rowCount() > 0) {
-    require_once 'migrations/20240728_migrate_configurations_to_promos.php';
-}
 
 // Handle Add/Edit Configuration
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
