@@ -25,6 +25,26 @@ try {
         }
     }
 
+    // This script can be re-run on existing installations to apply schema updates.
+    // The following block ensures the 'configurations' table is created if it's missing.
+    $stmt = $pdo->prepare("SHOW TABLES LIKE 'configurations'");
+    $stmt->execute();
+    if ($stmt->rowCount() == 0) {
+        $create_table_sql = "
+        CREATE TABLE `configurations` (
+          `id` int(11) NOT NULL AUTO_INCREMENT,
+          `carrier` varchar(255) NOT NULL,
+          `name` varchar(255) NOT NULL,
+          `config_text` text NOT NULL,
+          `is_active` tinyint(1) NOT NULL DEFAULT 1,
+          `created_at` timestamp NULL DEFAULT current_timestamp(),
+          PRIMARY KEY (`id`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+        ";
+        $pdo->exec($create_table_sql);
+        echo "Table `configurations` created successfully.<br>";
+    }
+
     // Check if the admin user already exists
     $stmt = $pdo->prepare('SELECT id FROM users WHERE username = :username');
     $stmt->execute(['username' => 'admin']);

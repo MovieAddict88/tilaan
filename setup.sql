@@ -104,6 +104,22 @@ CREATE TABLE `carriers` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `configurations`
+--
+
+CREATE TABLE IF NOT EXISTS `configurations` (
+  `id` int(11) NOT NULL,
+  `carrier` varchar(255) NOT NULL,
+  `name` varchar(255) NOT NULL,
+  `config_text` text NOT NULL,
+  `is_active` tinyint(1) NOT NULL DEFAULT 1,
+  `created_at` timestamp NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
 
 --
 -- Table structure for table `commissions`
@@ -376,6 +392,13 @@ ALTER TABLE `carriers`
   ADD PRIMARY KEY (`id`);
 
 --
+--
+-- Indexes for table `configurations`
+--
+ALTER TABLE `configurations`
+  ADD PRIMARY KEY (`id`);
+
+--
 -- Indexes for table `commissions`
 --
 ALTER TABLE `commissions`
@@ -501,6 +524,13 @@ ALTER TABLE `app_updates`
 -- AUTO_INCREMENT for table `carriers`
 --
 ALTER TABLE `carriers`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+--
+-- AUTO_INCREMENT for table `configurations`
+--
+ALTER TABLE `configurations`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
