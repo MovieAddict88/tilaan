@@ -104,6 +104,7 @@ CREATE TABLE `carriers` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
+-- --------------------------------------------------------
 
 --
 -- Table structure for table `configurations`
@@ -391,6 +392,7 @@ ALTER TABLE `carriers`
   ADD PRIMARY KEY (`id`);
 
 --
+--
 -- Indexes for table `configurations`
 --
 ALTER TABLE `configurations`
@@ -524,6 +526,7 @@ ALTER TABLE `app_updates`
 ALTER TABLE `carriers`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
+--
 --
 -- AUTO_INCREMENT for table `configurations`
 --
