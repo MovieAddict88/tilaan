@@ -83,5 +83,14 @@ return [
     'are_you_sure' => 'Are you sure?',
     'banned_users' => 'Banned Users',
     'banned_users_list' => 'Banned Users List',
-    'unban_user' => 'Unban User'
+    'unban_user' => 'Unban User',
+    'assign_promos_to_profile' => 'Assign Promos to Profile',
+    'select_profile' => 'Select Profile',
+    'please_select' => 'Please Select',
+    'available_promos' => 'Available Promos',
+    'save_changes' => 'Save Changes',
+    'add_new_promo' => 'Add New Promo',
+    'add_promo' => 'Add Promo',
+    'existing_promos' => 'Existing Promos',
+    'are_you_sure' => 'Are you sure?'
 ];

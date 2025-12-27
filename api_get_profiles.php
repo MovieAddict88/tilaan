@@ -37,52 +37,29 @@ try {
         exit;
     }
 
-    // Check if promo_id is set in the POST request
-    if (isset($_POST['promo_id']) && !empty($_POST['promo_id'])) {
-        $promo_id = $_POST['promo_id'];
+    // Prepare a select statement to retrieve unique, active profiles
+    $sql = "
+        SELECT DISTINCT
+            p.id,
+            p.name AS profile_name,
+            p.type AS profile_type,
+            p.icon_path
+        FROM
+            vpn_profiles p
+        WHERE
+            p.is_active = 1
+        ORDER BY
+            p.name ASC";
 
-        // Prepare a select statement to retrieve profiles and their associated promo configurations
-        $sql = "
-            SELECT
-                p.id,
-                p.name AS profile_name,
-                p.ovpn_config,
-                pr.config_text,
-                p.type as profile_type,
-                p.icon_path
-            FROM
-                vpn_profiles p
-            LEFT JOIN
-                promos pr ON p.promo_id = pr.id
-            WHERE
-                p.promo_id = :promo_id
-            ORDER BY
-                p.name ASC";
-
-        $stmt = $pdo->prepare($sql);
-        $stmt->bindParam(':promo_id', $promo_id, PDO::PARAM_INT);
-        $stmt->execute();
-        $profiles = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    } else {
-        // If no promo_id is provided, return an empty list of profiles.
-        $profiles = [];
-    }
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute();
+    $profiles = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     $base_url = get_base_url();
     foreach ($profiles as &$profile) {
-        // Combine the base ovpn config with the promo's config text
-        $profile['profile_content'] = $profile['ovpn_config'] . "\n" . $profile['config_text'];
-
-        // Unset the original config fields to keep the response clean
-        unset($profile['ovpn_config']);
-        unset($profile['config_text']);
-
         if (!empty($profile['icon_path'])) {
             $profile['icon_path'] = $base_url . $profile['icon_path'];
         }
-        // Simulate ping for each profile
-        $profile['ping'] = rand(20, 200);
-        $profile['signal_strength'] = rand(30, 100);
     }
 
     // Set the content type header to application/json
