@@ -77,6 +77,16 @@ try {
               `created_at` timestamp NULL DEFAULT current_timestamp(),
               PRIMARY KEY (`id`)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_unicode_ci;
+        ",
+        'configurations' => "
+            CREATE TABLE `configurations` (
+              `id` int(11) NOT NULL AUTO_INCREMENT,
+              `name` varchar(255) NOT NULL,
+              `type` varchar(255) NOT NULL,
+              `value` text NOT NULL,
+              `created_at` timestamp NULL DEFAULT current_timestamp(),
+              PRIMARY KEY (`id`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
         "
     ];
 

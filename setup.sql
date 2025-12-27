@@ -95,6 +95,20 @@ CREATE TABLE `app_updates` (
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `configurations`
+--
+
+CREATE TABLE `configurations` (
+  `id` int(11) NOT NULL,
+  `name` varchar(255) NOT NULL,
+  `type` varchar(255) NOT NULL,
+  `value` text NOT NULL,
+  `created_at` timestamp NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `carriers`
 --
 
@@ -384,6 +398,12 @@ ALTER TABLE `commissions`
   ADD KEY `client_id` (`client_id`);
 
 --
+-- Indexes for table `configurations`
+--
+ALTER TABLE `configurations`
+  ADD PRIMARY KEY (`id`);
+
+--
 -- Indexes for table `payments`
 --
 ALTER TABLE `payments`
@@ -507,6 +527,12 @@ ALTER TABLE `carriers`
 -- AUTO_INCREMENT for table `commissions`
 --
 ALTER TABLE `commissions`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `configurations`
+--
+ALTER TABLE `configurations`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
