@@ -41,12 +41,6 @@ if ($profile) {
     exit;
 }
 
-// Fetch the associated promos
-$stmt_promos = $pdo->prepare('SELECT promo_id FROM profile_promos WHERE profile_id = :profile_id');
-$stmt_promos->bindParam(':profile_id', $profile_id, PDO::PARAM_INT);
-$stmt_promos->execute();
-$associated_promo_ids = $stmt_promos->fetchAll(PDO::FETCH_COLUMN);
-
 // Process form data when the form is submitted
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     // Validate profile name
@@ -65,50 +59,22 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
     // Check for errors before updating the database
     if (empty($profile_name_err) && empty($profile_content_err)) {
-        try {
-            $pdo->beginTransaction();
+        $sql = 'UPDATE vpn_profiles SET name = :profile_name, ovpn_config = :profile_content, type = :profile_type, icon_path = :icon_path, management_ip = :management_ip, management_port = :management_port WHERE id = :id';
+        $stmt = $pdo->prepare($sql);
 
-            $sql = 'UPDATE vpn_profiles SET name = :profile_name, ovpn_config = :profile_content, type = :profile_type, icon_path = :icon_path, management_ip = :management_ip, management_port = :management_port WHERE id = :id';
-            $stmt = $pdo->prepare($sql);
+        $stmt->bindParam(':profile_name', $profile_name, PDO::PARAM_STR);
+        $stmt->bindParam(':profile_content', $profile_content, PDO::PARAM_STR);
+        $stmt->bindParam(':profile_type', $_POST['profile_type'], PDO::PARAM_STR);
+        $stmt->bindParam(':icon_path', $_POST['icon_path'], PDO::PARAM_STR);
+        $stmt->bindParam(':management_ip', $_POST['management_ip'], PDO::PARAM_STR);
+        $stmt->bindParam(':management_port', $_POST['management_port'], PDO::PARAM_INT);
+        $stmt->bindParam(':id', $profile_id, PDO::PARAM_INT);
 
-            $stmt->bindParam(':profile_name', $profile_name, PDO::PARAM_STR);
-            $stmt->bindParam(':profile_content', $profile_content, PDO::PARAM_STR);
-            $stmt->bindParam(':profile_type', $_POST['profile_type'], PDO::PARAM_STR);
-            $stmt->bindParam(':icon_path', $_POST['icon_path'], PDO::PARAM_STR);
-            $stmt->bindParam(':management_ip', $_POST['management_ip'], PDO::PARAM_STR);
-            $stmt->bindParam(':management_port', $_POST['management_port'], PDO::PARAM_INT);
-            $stmt->bindParam(':id', $profile_id, PDO::PARAM_INT);
-
-            if ($stmt->execute()) {
-                // Delete existing promo associations
-                $sql_delete_promos = 'DELETE FROM profile_promos WHERE profile_id = :profile_id';
-                $stmt_delete_promos = $pdo->prepare($sql_delete_promos);
-                $stmt_delete_promos->bindParam(':profile_id', $profile_id, PDO::PARAM_INT);
-                $stmt_delete_promos->execute();
-
-                // Insert new promo associations
-                if (!empty($_POST['promo_ids']) && is_array($_POST['promo_ids'])) {
-                    $sql_insert_promo = 'INSERT INTO profile_promos (profile_id, promo_id) VALUES (:profile_id, :promo_id)';
-                    $stmt_insert_promo = $pdo->prepare($sql_insert_promo);
-
-                    foreach ($_POST['promo_ids'] as $promo_id) {
-                        $stmt_insert_promo->bindParam(':profile_id', $profile_id, PDO::PARAM_INT);
-                        $stmt_insert_promo->bindParam(':promo_id', $promo_id, PDO::PARAM_INT);
-                        $stmt_insert_promo->execute();
-                    }
-                }
-
-                $pdo->commit();
-                header('location: profiles.php');
-                exit;
-            } else {
-                $pdo->rollBack();
-                echo 'Something went wrong. Please try again later.';
-            }
-        } catch (Exception $e) {
-            $pdo->rollBack();
-            error_log('Error in edit_profile.php: ' . $e->getMessage());
-            echo 'An error occurred. Please try again later.';
+        if ($stmt->execute()) {
+            header('location: profiles.php');
+            exit;
+        } else {
+            echo 'Something went wrong. Please try again later.';
         }
     }
 }
@@ -167,22 +133,6 @@ include 'header.php';
                     }
                     ?>
                 </select>
-            </div>
-            <div class="form-group">
-                <label>Promos</label>
-                <div class="checkbox-group">
-                    <?php
-                    $sql_promos = 'SELECT id, promo_name FROM promos';
-                    $promos = $pdo->query($sql_promos)->fetchAll();
-                    foreach ($promos as $promo) {
-                        $checked = in_array($promo['id'], $associated_promo_ids) ? 'checked' : '';
-                        echo '<div class="form-check">';
-                        echo '<input class="form-check-input" type="checkbox" name="promo_ids[]" value="' . $promo['id'] . '" id="promo_' . $promo['id'] . '" ' . $checked . '>';
-                        echo '<label class="form-check-label" for="promo_' . $promo['id'] . '">' . htmlspecialchars($promo['promo_name']) . '</label>';
-                        echo '</div>';
-                    }
-                    ?>
-                </div>
             </div>
             <div class="form-group">
                 <input type="submit" class="btn btn-primary" value="Submit">

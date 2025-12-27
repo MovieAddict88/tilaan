@@ -87,6 +87,14 @@ try {
               `created_at` timestamp NULL DEFAULT current_timestamp(),
               PRIMARY KEY (`id`)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+        ",
+        'profile_promos' => "
+            CREATE TABLE `profile_promos` (
+              `profile_id` int(11) NOT NULL,
+              `promo_id` int(11) NOT NULL,
+              PRIMARY KEY (`profile_id`, `promo_id`),
+              KEY `promo_id` (`promo_id`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_unicode_ci;
         "
     ];
 
@@ -111,7 +119,8 @@ try {
 
     $columns = [
         'management_ip' => 'VARCHAR(255) DEFAULT NULL',
-        'management_port' => 'INT(11) DEFAULT NULL'
+        'management_port' => 'INT(11) DEFAULT NULL',
+        'is_active' => 'BOOLEAN NOT NULL DEFAULT TRUE'
     ];
 
     foreach ($columns as $column => $definition) {

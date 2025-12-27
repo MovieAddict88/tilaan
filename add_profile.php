@@ -32,14 +32,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
     // Check for errors before inserting into the database
     if (empty($profile_name_err) && empty($profile_content_err)) {
-        $sql = 'INSERT INTO vpn_profiles (name, ovpn_config, type, icon_path, promo_id) VALUES (:name, :ovpn_config, :type, :icon_path, :promo_id)';
+        $sql = 'INSERT INTO vpn_profiles (name, ovpn_config, type, icon_path) VALUES (:name, :ovpn_config, :type, :icon_path)';
 
         if ($stmt = $pdo->prepare($sql)) {
             $stmt->bindParam(':name', $profile_name, PDO::PARAM_STR);
             $stmt->bindParam(':ovpn_config', $profile_content, PDO::PARAM_STR);
             $stmt->bindParam(':type', $_POST['profile_type'], PDO::PARAM_STR);
             $stmt->bindParam(':icon_path', $_POST['icon_path'], PDO::PARAM_STR);
-            $stmt->bindParam(':promo_id', $_POST['promo_id'], PDO::PARAM_INT);
 
             if ($stmt->execute()) {
                 header('location: profiles.php');
@@ -88,19 +87,6 @@ include 'header.php';
                     $icons = glob('assets/*.png');
                     foreach ($icons as $icon) {
                         echo '<option value="' . $icon . '">' . basename($icon) . '</option>';
-                    }
-                    ?>
-                </select>
-            </div>
-            <div class="form-group">
-                <label>Promo</label>
-                <select name="promo_id" class="form-control">
-                    <option value="">Select Promo</option>
-                    <?php
-                    $sql = 'SELECT id, promo_name FROM promos';
-                    $promos = $pdo->query($sql)->fetchAll();
-                    foreach ($promos as $promo) {
-                        echo "<option value='" . $promo['id'] . "'>" . htmlspecialchars($promo['promo_name']) . "</option>";
                     }
                     ?>
                 </select>

@@ -8,15 +8,45 @@ if (!isset($_SESSION['loggedin']) || $_SESSION['loggedin'] !== true || $_SESSION
 require_once 'db_config.php';
 require_once 'utils.php';
 
-// Check if the configurations table exists and run the migration if it does
-$stmt = $pdo->query("SHOW TABLES LIKE 'configurations'");
-if ($stmt->rowCount() > 0) {
-    require_once 'migrations/20240728_migrate_configurations_to_promos.php';
+$profile_id = null;
+if (isset($_GET['profile_id'])) {
+    $profile_id = $_GET['profile_id'];
 }
 
-// Handle Add/Edit Configuration
+// Handle Add/Edit Promo
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    if (isset($_POST['add_configuration'])) {
+    // Handle saving promo associations
+    if (isset($_POST['save_associations'])) {
+        $profile_id = $_POST['profile_id'];
+        $promo_ids = isset($_POST['promo_ids']) ? $_POST['promo_ids'] : [];
+
+        try {
+            $pdo->beginTransaction();
+
+            $sql = 'DELETE FROM profile_promos WHERE profile_id = :profile_id';
+            $stmt = $pdo->prepare($sql);
+            $stmt->bindParam(':profile_id', $profile_id, PDO::PARAM_INT);
+            $stmt->execute();
+
+            if (!empty($promo_ids)) {
+                $sql = 'INSERT INTO profile_promos (profile_id, promo_id) VALUES (:profile_id, :promo_id)';
+                $stmt = $pdo->prepare($sql);
+                foreach ($promo_ids as $promo_id) {
+                    $stmt->bindParam(':profile_id', $profile_id, PDO::PARAM_INT);
+                    $stmt->bindParam(':promo_id', $promo_id, PDO::PARAM_INT);
+                    $stmt->execute();
+                }
+            }
+            $pdo->commit();
+        } catch (Exception $e) {
+            $pdo->rollBack();
+        }
+        header('location: promo_manager.php?profile_id=' . $profile_id);
+        exit;
+    }
+
+    // Handle Add Promo
+    if (isset($_POST['add_promo'])) {
         $carrier = trim($_POST['carrier']);
         $name = trim($_POST['name']);
         $config_text = trim($_POST['config_text']);
@@ -32,9 +62,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $stmt->bindParam(':icon_promo_path', $icon_promo_path, PDO::PARAM_STR);
             $stmt->execute();
         }
+        header('location: promo_manager.php' . ($profile_id ? '?profile_id=' . $profile_id : ''));
+        exit;
     }
-    header('location: promo_manager.php');
-    exit;
 }
 
 // Handle Delete Promo
@@ -45,11 +75,27 @@ if (isset($_GET['delete'])) {
         $stmt->bindParam(':id', $id, PDO::PARAM_INT);
         $stmt->execute();
     }
-    header('location: promo_manager.php');
+    header('location: promo_manager.php' . ($profile_id ? '?profile_id=' . $profile_id : ''));
     exit;
 }
 
 include 'header.php';
+
+// Fetch all profiles for the dropdown
+$profiles = $pdo->query('SELECT id, name FROM vpn_profiles ORDER BY name ASC')->fetchAll(PDO::FETCH_ASSOC);
+
+// Fetch all promos
+$promos = $pdo->query('SELECT id, promo_name, carrier, is_active, icon_promo_path FROM promos ORDER BY promo_name ASC')->fetchAll(PDO::FETCH_ASSOC);
+
+// Fetch current associations for the selected profile
+$associated_promo_ids = [];
+if ($profile_id) {
+    $sql = 'SELECT promo_id FROM profile_promos WHERE profile_id = :profile_id';
+    $stmt = $pdo->prepare($sql);
+    $stmt->bindParam(':profile_id', $profile_id, PDO::PARAM_INT);
+    $stmt->execute();
+    $associated_promo_ids = $stmt->fetchAll(PDO::FETCH_COLUMN, 0);
+}
 ?>
 
 <div class="page-header">
@@ -58,10 +104,53 @@ include 'header.php';
 
 <div class="card">
     <div class="card-header">
+        <h3><?php echo translate('assign_promos_to_profile'); ?></h3>
+    </div>
+    <div class="card-body">
+        <form action="promo_manager.php" method="get" id="profile_selector_form">
+            <div class="form-group">
+                <label for="profile_id"><?php echo translate('select_profile'); ?></label>
+                <select name="profile_id" id="profile_id" class="form-control" onchange="document.getElementById('profile_selector_form').submit();">
+                    <option value=""><?php echo translate('please_select'); ?></option>
+                    <?php foreach ($profiles as $profile): ?>
+                        <option value="<?php echo $profile['id']; ?>" <?php if ($profile_id == $profile['id']) echo 'selected'; ?>>
+                            <?php echo htmlspecialchars($profile['name']); ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+        </form>
+
+        <?php if ($profile_id): ?>
+            <hr>
+            <form action="promo_manager.php?profile_id=<?php echo $profile_id; ?>" method="post">
+                <input type="hidden" name="profile_id" value="<?php echo $profile_id; ?>">
+                <h4><?php echo translate('available_promos'); ?></h4>
+                <div class="form-group">
+                    <?php foreach ($promos as $promo): ?>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="promo_ids[]" value="<?php echo $promo['id']; ?>" id="promo_<?php echo $promo['id']; ?>"
+                                <?php if (in_array($promo['id'], $associated_promo_ids)) echo 'checked'; ?>>
+                            <label class="form-check-label" for="promo_<?php echo $promo['id']; ?>">
+                                <?php echo htmlspecialchars($promo['promo_name']); ?>
+                            </label>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+                <div class="form-group">
+                    <input type="submit" name="save_associations" class="btn btn-primary" value="<?php echo translate('save_changes'); ?>">
+                </div>
+            </form>
+        <?php endif; ?>
+    </div>
+</div>
+
+<div class="card" style="margin-top: 20px;">
+    <div class="card-header">
         <h3><?php echo translate('add_new_promo'); ?></h3>
     </div>
     <div class="card-body">
-        <form action="promo_manager.php" method="post">
+        <form action="promo_manager.php<?php echo ($profile_id ? '?profile_id=' . $profile_id : ''); ?>" method="post">
             <div class="form-group">
                 <label for="carrier">Carrier</label>
                 <input type="text" name="carrier" id="carrier" class="form-control" required>
@@ -90,48 +179,46 @@ include 'header.php';
                 </select>
             </div>
             <div class="form-group">
-                <input type="submit" name="add_configuration" class="btn btn-primary" value="<?php echo translate('add_configuration'); ?>">
+                <input type="submit" name="add_promo" class="btn btn-primary" value="<?php echo translate('add_promo'); ?>">
             </div>
         </form>
     </div>
 </div>
 
-<div class="card">
+<div class="card" style="margin-top: 20px;">
     <div class="card-header">
         <h3><?php echo translate('existing_promos'); ?></h3>
     </div>
     <div class="card-body">
         <div class="table-container">
-        <table class="table">
-            <thead>
-                <tr>
-                    <th>Carrier</th>
-                    <th>Name</th>
-                    <th>Status</th>
-                    <th>Icon</th>
-                    <th>Action</th>
-                </tr>
-            </thead>
-            <tbody>
-                <?php
-                $sql = 'SELECT * FROM promos ORDER BY carrier, promo_name';
-                $promos = $pdo->query($sql)->fetchAll();
-                $base_url = get_base_url();
-                foreach ($promos as $promo) {
-                    echo "<tr>";
-                    echo "<td>" . htmlspecialchars($promo['carrier']) . "</td>";
-                    echo "<td>" . htmlspecialchars($promo['promo_name']) . "</td>";
-                    echo "<td>" . ($promo['is_active'] ? 'Active' : 'Inactive') . "</td>";
-                    echo "<td><img src='" . htmlspecialchars($base_url . $promo['icon_promo_path']) . "' alt='icon' width='30'></td>";
-                    echo "<td>";
-                    echo "<a href='edit_promo.php?id=" . $promo['id'] . "' class='btn btn-primary'>Edit</a>";
-                    echo "<a href='promo_manager.php?delete=" . $promo['id'] . "' class='btn btn-danger' onclick='return confirm(\"" . htmlspecialchars(translate('are_you_sure'), ENT_QUOTES) . "\")'>" . translate('delete') . "</a>";
-                    echo "</td>";
-                    echo "</tr>";
-                }
-                ?>
-            </tbody>
-        </table>
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Carrier</th>
+                        <th>Name</th>
+                        <th>Status</th>
+                        <th>Icon</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php
+                    $base_url = get_base_url();
+                    foreach ($promos as $promo) {
+                        echo "<tr>";
+                        echo "<td>" . htmlspecialchars($promo['carrier']) . "</td>";
+                        echo "<td>" . htmlspecialchars($promo['promo_name']) . "</td>";
+                        echo "<td>" . ($promo['is_active'] ? 'Active' : 'Inactive') . "</td>";
+                        echo "<td><img src='" . htmlspecialchars($base_url . $promo['icon_promo_path']) . "' alt='icon' width='30'></td>";
+                        echo "<td>";
+                        echo "<a href='edit_promo.php?id=" . $promo['id'] . "' class='btn btn-primary'>Edit</a>";
+                        echo "<a href='promo_manager.php?delete=" . $promo['id'] . ($profile_id ? '&profile_id=' . $profile_id : '') . "' class='btn btn-danger' onclick='return confirm(\"" . htmlspecialchars(translate('are_you_sure'), ENT_QUOTES) . "\")'>" . translate('delete') . "</a>";
+                        echo "</td>";
+                        echo "</tr>";
+                    }
+                    ?>
+                </tbody>
+            </table>
         </div>
     </div>
 </div>
