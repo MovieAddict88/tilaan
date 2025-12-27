@@ -37,46 +37,63 @@ try {
         exit;
     }
 
-    // Prepare a select statement to retrieve all unique profiles
-    $sql = "
+    // Base SQL query parts
+    $select_sql = "
         SELECT DISTINCT
             p.id,
             p.name AS profile_name,
             p.ovpn_config,
             p.type as profile_type,
             p.icon_path
-        FROM
-            vpn_profiles p
-        ORDER BY
-            p.name ASC";
+    ";
+    $from_sql = " FROM vpn_profiles p ";
+    $join_sql = "";
+    $where_sql = "";
+    $order_by_sql = " ORDER BY p.name ASC";
+
+    $params = [];
+
+    // Check if promo_id is provided for filtering
+    if (isset($_POST['promo_id']) && !empty($_POST['promo_id'])) {
+        $select_sql .= ", pr.config_text ";
+        $join_sql = "
+            JOIN profile_promos pp ON p.id = pp.profile_id
+            JOIN promos pr ON pp.promo_id = pr.id
+        ";
+        $where_sql = " WHERE pp.promo_id = :promo_id ";
+        $params[':promo_id'] = $_POST['promo_id'];
+    }
+
+    $sql = $select_sql . $from_sql . $join_sql . $where_sql . $order_by_sql;
 
     $stmt = $pdo->prepare($sql);
-    $stmt->execute();
+    $stmt->execute($params);
     $profiles = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     $base_url = get_base_url();
     foreach ($profiles as &$profile) {
-        // In the new flow, the config text from promos will be handled by the client
-        // after fetching promos for a selected profile.
-        $profile['profile_content'] = $profile['ovpn_config'];
+        $profile_content = $profile['ovpn_config'];
+        if (isset($profile['config_text']) && !empty($profile['config_text'])) {
+            $profile_content .= "\n" . $profile['config_text'];
+        }
+        $profile['profile_content'] = $profile_content;
+
         unset($profile['ovpn_config']);
+        if (isset($profile['config_text'])) {
+            unset($profile['config_text']);
+        }
 
         if (!empty($profile['icon_path'])) {
             $profile['icon_path'] = $base_url . $profile['icon_path'];
         }
-        // Simulate ping for each profile
         $profile['ping'] = rand(20, 200);
         $profile['signal_strength'] = rand(30, 100);
     }
 
-    // Set the content type header to application/json
     header('Content-Type: application/json');
-
-    // Output the profiles as a JSON encoded string
     echo json_encode(['status' => 'success', 'profiles' => $profiles]);
 
 } catch (PDOException $e) {
-    // Handle potential database errors
     header('Content-Type: application/json');
     http_response_code(500); // Internal Server Error
     echo json_encode(['status' => 'error', 'message' => 'Database error: ' . $e->getMessage()]);

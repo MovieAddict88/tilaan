@@ -64,7 +64,7 @@ try {
               `config_text` text DEFAULT NULL,
               `is_active` tinyint(1) DEFAULT NULL,
               PRIMARY KEY (`id`)
-            ) ENGINE=MyISAM DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_unicode_ci;
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
         ",
         'admob_ads' => "
             CREATE TABLE `admob_ads` (
@@ -93,7 +93,7 @@ try {
               `profile_id` int(11) NOT NULL,
               `promo_id` int(11) NOT NULL,
               PRIMARY KEY (`profile_id`,`promo_id`)
-            ) ENGINE=MyISAM DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_unicode_ci;
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
         "
     ];
 

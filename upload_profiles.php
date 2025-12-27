@@ -80,7 +80,8 @@ if (isset($_FILES['profiles_ovpn']) && isset($_POST['profile_type'])) {
             $pdo->commit();
         } catch (Exception $e) {
             $pdo->rollBack();
-            $error_message = 'An error occurred during upload. Please try again. ' . $e->getMessage();
+            error_log('Error in upload_profiles.php: ' . $e->getMessage());
+            $error_message = 'An error occurred during upload. Please try again.';
         }
     }
 
