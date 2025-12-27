@@ -123,6 +123,19 @@ try {
         }
     }
 
+    $user_columns = [
+        'data_usage' => 'BIGINT(20) UNSIGNED NOT NULL DEFAULT 0'
+    ];
+
+    foreach ($user_columns as $column => $definition) {
+        $stmt = $pdo->prepare("SHOW COLUMNS FROM `users` LIKE :column");
+        $stmt->execute(['column' => $column]);
+        if ($stmt->rowCount() == 0) {
+            $pdo->exec("ALTER TABLE `users` ADD COLUMN `$column` $definition");
+            echo "Column `$column` added to `users` table.<br>";
+        }
+    }
+
     $stmt = $pdo->prepare('SELECT id FROM users WHERE username = :username');
     $stmt->execute(['username' => 'admin']);
     
