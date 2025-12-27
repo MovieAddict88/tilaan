@@ -27,11 +27,10 @@ if (isset($_FILES['profile_ovpn']) && isset($_POST['profile_name'])) {
 
         try {
             $pdo->beginTransaction();
-            $sql = 'INSERT INTO vpn_profiles (name, ovpn_config, type) VALUES (:name, :ovpn_config, :type)';
+            $sql = 'INSERT INTO vpn_profiles (name, ovpn_config) VALUES (:name, :ovpn_config)';
             if ($stmt = $pdo->prepare($sql)) {
                 $stmt->bindParam(':name', $profile_name, PDO::PARAM_STR);
                 $stmt->bindParam(':ovpn_config', $ovpn_config, PDO::PARAM_STR);
-                $stmt->bindParam(':type', $_POST['profile_type'], PDO::PARAM_STR);
                 if ($stmt->execute()) {
                     $profile_id = $pdo->lastInsertId();
 
@@ -85,13 +84,6 @@ include 'header.php';
             <div class="form-group">
                 <label for="profile_ovpn">Select .ovpn file to upload:</label>
                 <input type="file" name="profile_ovpn" id="profile_ovpn" class="form-control" required>
-            </div>
-            <div class="form-group">
-                <label>Profile Type</label>
-                <select name="profile_type" class="form-control">
-                    <option value="Premium">Premium</option>
-                    <option value="Freemium">Freemium</option>
-                </select>
             </div>
             <div class="form-group">
                 <label>Promos</label>

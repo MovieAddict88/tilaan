@@ -24,7 +24,7 @@ if (isset($_GET['id']) && !empty($_GET['id'])) {
 }
 
 // Fetch the profile from the database
-$stmt = $pdo->prepare('SELECT name, ovpn_config, type, icon_path, management_ip, management_port FROM vpn_profiles WHERE id = :id');
+$stmt = $pdo->prepare('SELECT name, ovpn_config, icon_path, management_ip, management_port FROM vpn_profiles WHERE id = :id');
 $stmt->bindParam(':id', $profile_id, PDO::PARAM_INT);
 $stmt->execute();
 $profile = $stmt->fetch();
@@ -32,7 +32,6 @@ $profile = $stmt->fetch();
 if ($profile) {
     $profile_name = $profile['name'];
     $profile_content = $profile['ovpn_config'];
-    $profile_type = $profile['type'];
     $profile_icon = $profile['icon_path'];
     $management_ip = $profile['management_ip'];
     $management_port = $profile['management_port'];
@@ -68,12 +67,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         try {
             $pdo->beginTransaction();
 
-            $sql = 'UPDATE vpn_profiles SET name = :profile_name, ovpn_config = :profile_content, type = :profile_type, icon_path = :icon_path, management_ip = :management_ip, management_port = :management_port WHERE id = :id';
+            $sql = 'UPDATE vpn_profiles SET name = :profile_name, ovpn_config = :profile_content, icon_path = :icon_path, management_ip = :management_ip, management_port = :management_port WHERE id = :id';
             $stmt = $pdo->prepare($sql);
 
             $stmt->bindParam(':profile_name', $profile_name, PDO::PARAM_STR);
             $stmt->bindParam(':profile_content', $profile_content, PDO::PARAM_STR);
-            $stmt->bindParam(':profile_type', $_POST['profile_type'], PDO::PARAM_STR);
             $stmt->bindParam(':icon_path', $_POST['icon_path'], PDO::PARAM_STR);
             $stmt->bindParam(':management_ip', $_POST['management_ip'], PDO::PARAM_STR);
             $stmt->bindParam(':management_port', $_POST['management_port'], PDO::PARAM_INT);
@@ -141,13 +139,6 @@ include 'header.php';
                 <input type="hidden" name="profile_name" value="<?php echo htmlspecialchars($profile_name); ?>">
                 <input type="hidden" name="profile_content" value="<?php echo htmlspecialchars($profile_content); ?>">
             <?php endif; ?>
-            <div class="form-group">
-                <label>Profile Type</label>
-                <select name="profile_type" class="form-control">
-                    <option value="Premium" <?php echo ($profile_type == 'Premium') ? 'selected' : ''; ?>>Premium</option>
-                    <option value="Freemium" <?php echo ($profile_type == 'Freemium') ? 'selected' : ''; ?>>Freemium</option>
-                </select>
-            </div>
             <div class="form-group">
                 <label>Management IP</label>
                 <input type="text" name="management_ip" class="form-control" value="<?php echo htmlspecialchars($management_ip); ?>" placeholder="e.g., 127.0.0.1">

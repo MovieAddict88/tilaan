@@ -34,12 +34,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     if (empty($profile_name_err) && empty($profile_content_err)) {
         try {
             $pdo->beginTransaction();
-            $sql = 'INSERT INTO vpn_profiles (name, ovpn_config, type, icon_path) VALUES (:name, :ovpn_config, :type, :icon_path)';
+            $sql = 'INSERT INTO vpn_profiles (name, ovpn_config, icon_path) VALUES (:name, :ovpn_config, :icon_path)';
 
             if ($stmt = $pdo->prepare($sql)) {
                 $stmt->bindParam(':name', $profile_name, PDO::PARAM_STR);
                 $stmt->bindParam(':ovpn_config', $profile_content, PDO::PARAM_STR);
-                $stmt->bindParam(':type', $_POST['profile_type'], PDO::PARAM_STR);
                 $stmt->bindParam(':icon_path', $_POST['icon_path'], PDO::PARAM_STR);
 
                 if ($stmt->execute()) {
@@ -93,13 +92,6 @@ include 'header.php';
                 <label>Profile Content</label>
                 <textarea name="profile_content" class="form-control" rows="10"><?php echo $profile_content; ?></textarea>
                 <span class="help-block"><?php echo $profile_content_err; ?></span>
-            </div>
-            <div class="form-group">
-                <label>Profile Type</label>
-                <select name="profile_type" class="form-control">
-                    <option value="Premium">Premium</option>
-                    <option value="Freemium">Freemium</option>
-                </select>
             </div>
             <div class="form-group">
                 <label>Icon</label>

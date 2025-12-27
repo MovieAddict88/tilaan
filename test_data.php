@@ -3,12 +3,11 @@ require_once 'db_config.php';
 
 try {
     // Create a test profile
-    $sql = "INSERT INTO vpn_profiles (name, ovpn_config, type) VALUES (:name, :ovpn_config, :type)";
+    $sql = "INSERT INTO vpn_profiles (name, ovpn_config) VALUES (:name, :ovpn_config)";
     $stmt = $pdo->prepare($sql);
     $stmt->execute([
         ':name' => 'test_profile',
-        ':ovpn_config' => 'test_config',
-        ':type' => 'Premium'
+        ':ovpn_config' => 'test_config'
     ]);
     $profile_id = $pdo->lastInsertId();
     echo "Test profile created with id: $profile_id\n";
