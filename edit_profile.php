@@ -12,6 +12,7 @@ if (!isset($_SESSION['loggedin']) || $_SESSION['loggedin'] !== true) {
 require_once 'db_config.php';
 
 $profile_name = $profile_content = '';
+$management_ip = $management_port = '';
 $profile_name_err = $profile_content_err = '';
 $profile_id = null;
 
@@ -63,6 +64,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $profile_content = trim($_POST['profile_content']);
     }
 
+    $management_ip = trim($_POST['management_ip']);
+    $management_port = trim($_POST['management_port']);
+
     // Check for errors before updating the database
     if (empty($profile_name_err) && empty($profile_content_err)) {
         try {
@@ -75,8 +79,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $stmt->bindParam(':profile_content', $profile_content, PDO::PARAM_STR);
             $stmt->bindParam(':profile_type', $_POST['profile_type'], PDO::PARAM_STR);
             $stmt->bindParam(':icon_path', $_POST['icon_path'], PDO::PARAM_STR);
-            $stmt->bindParam(':management_ip', $_POST['management_ip'], PDO::PARAM_STR);
-            $stmt->bindParam(':management_port', $_POST['management_port'], PDO::PARAM_INT);
+            $stmt->bindParam(':management_ip', $management_ip, PDO::PARAM_STR);
+            $stmt->bindParam(':management_port', $management_port, PDO::PARAM_INT);
             $stmt->bindParam(':id', $profile_id, PDO::PARAM_INT);
 
             if ($stmt->execute()) {
@@ -137,9 +141,19 @@ include 'header.php';
                 <textarea name="profile_content" class="form-control" rows="10"><?php echo htmlspecialchars($profile_content); ?></textarea>
                 <span class="help-block"><?php echo $profile_content_err; ?></span>
             </div>
+            <div class="form-group">
+                <label>Management IP</label>
+                <input type="text" name="management_ip" class="form-control" value="<?php echo htmlspecialchars($management_ip); ?>">
+            </div>
+            <div class="form-group">
+                <label>Management Port</label>
+                <input type="text" name="management_port" class="form-control" value="<?php echo htmlspecialchars($management_port); ?>">
+            </div>
             <?php else: ?>
                 <input type="hidden" name="profile_name" value="<?php echo htmlspecialchars($profile_name); ?>">
                 <input type="hidden" name="profile_content" value="<?php echo htmlspecialchars($profile_content); ?>">
+                <input type="hidden" name="management_ip" value="<?php echo htmlspecialchars($management_ip); ?>">
+                <input type="hidden" name="management_port" value="<?php echo htmlspecialchars($management_port); ?>">
             <?php endif; ?>
             <div class="form-group">
                 <label>Profile Type</label>
@@ -147,14 +161,6 @@ include 'header.php';
                     <option value="Premium" <?php echo ($profile_type == 'Premium') ? 'selected' : ''; ?>>Premium</option>
                     <option value="Freemium" <?php echo ($profile_type == 'Freemium') ? 'selected' : ''; ?>>Freemium</option>
                 </select>
-            </div>
-            <div class="form-group">
-                <label>Management IP</label>
-                <input type="text" name="management_ip" class="form-control" value="<?php echo htmlspecialchars($management_ip); ?>" placeholder="e.g., 127.0.0.1">
-            </div>
-            <div class="form-group">
-                <label>Management Port</label>
-                <input type="number" name="management_port" class="form-control" value="<?php echo htmlspecialchars($management_port); ?>" placeholder="e.g., 7505">
             </div>
             <div class="form-group">
                 <label>Icon</label>
