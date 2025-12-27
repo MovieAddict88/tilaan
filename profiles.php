@@ -11,8 +11,27 @@ if (!isset($_SESSION['loggedin']) || $_SESSION['loggedin'] !== true) {
 // Include the database connection file
 require_once 'db_config.php';
 
-// Fetch all profiles from the database
-$stmt = $pdo->query('SELECT p.id, p.name, p.created_at, p.type, p.icon_path, pr.promo_name FROM vpn_profiles p LEFT JOIN promos pr ON p.promo_id = pr.id ORDER BY p.name');
+// Fetch all profiles from the database along with their associated promos
+$sql = "
+    SELECT
+        p.id,
+        p.name,
+        p.created_at,
+        p.type,
+        p.icon_path,
+        GROUP_CONCAT(pr.promo_name SEPARATOR ', ') AS promo_names
+    FROM
+        vpn_profiles p
+    LEFT JOIN
+        profile_promos pp ON p.id = pp.profile_id
+    LEFT JOIN
+        promos pr ON pp.promo_id = pr.id
+    GROUP BY
+        p.id
+    ORDER BY
+        p.name ASC
+";
+$stmt = $pdo->query($sql);
 $profiles = $stmt->fetchAll();
 
 include 'header.php';
@@ -61,9 +80,16 @@ include 'header.php';
                         }
                         ?>
                         <span class="badge <?php echo $badge_class; ?>"><?php echo htmlspecialchars($profile['type']); ?></span>
-                        <?php if (!empty($profile['promo_name'])) : ?>
-                            <p class="profile-promo"><?php echo htmlspecialchars($profile['promo_name']); ?></p>
-                        <?php endif; ?>
+                        <div class="profile-promos mt-2">
+                            <?php if (!empty($profile['promo_names'])) : ?>
+                                <?php
+                                $promo_names = explode(', ', $profile['promo_names']);
+                                foreach ($promo_names as $promo_name) :
+                                ?>
+                                    <span class="badge badge-info mr-1"><?php echo htmlspecialchars($promo_name); ?></span>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
+                        </div>
                         <p class="profile-date"><?php echo date('M j, Y g:i A', strtotime($profile['created_at'])); ?></p>
                     </div>
                     <div class="profile-card-footer">

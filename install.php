@@ -64,7 +64,7 @@ try {
               `config_text` text DEFAULT NULL,
               `is_active` tinyint(1) DEFAULT NULL,
               PRIMARY KEY (`id`)
-            ) ENGINE=MyISAM DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_unicode_ci;
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
         ",
         'admob_ads' => "
             CREATE TABLE `admob_ads` (
@@ -86,6 +86,13 @@ try {
               `value` text NOT NULL,
               `created_at` timestamp NULL DEFAULT current_timestamp(),
               PRIMARY KEY (`id`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+        ",
+        'profile_promos' => "
+            CREATE TABLE `profile_promos` (
+              `profile_id` int(11) NOT NULL,
+              `promo_id` int(11) NOT NULL,
+              PRIMARY KEY (`profile_id`,`promo_id`)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
         "
     ];
@@ -134,6 +141,27 @@ try {
             $pdo->exec("ALTER TABLE `users` ADD COLUMN `$column` $definition");
             echo "Column `$column` added to `users` table.<br>";
         }
+    }
+
+    // Check if 'promo_id' column exists in 'vpn_profiles' table and drop it
+    $stmt = $pdo->prepare("SHOW COLUMNS FROM `vpn_profiles` LIKE 'promo_id'");
+    $stmt->execute();
+    if ($stmt->rowCount() > 0) {
+        // First, drop the foreign key constraint if it exists
+        try {
+            $stmt_fk = $pdo->prepare("SELECT CONSTRAINT_NAME FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE WHERE TABLE_NAME = 'vpn_profiles' AND COLUMN_NAME = 'promo_id' AND REFERENCED_TABLE_NAME IS NOT NULL");
+            $stmt_fk->execute();
+            $fk = $stmt_fk->fetch(PDO::FETCH_ASSOC);
+            if ($fk) {
+                $pdo->exec("ALTER TABLE `vpn_profiles` DROP FOREIGN KEY `{$fk['CONSTRAINT_NAME']}`");
+            }
+        } catch (PDOException $e) {
+            // Ignore if foreign key doesn't exist
+        }
+
+        // Now, drop the column
+        $pdo->exec("ALTER TABLE `vpn_profiles` DROP COLUMN `promo_id`");
+        echo "Column `promo_id` dropped from `vpn_profiles` table.<br>";
     }
 
     $stmt = $pdo->prepare('SELECT id FROM users WHERE username = :username');
