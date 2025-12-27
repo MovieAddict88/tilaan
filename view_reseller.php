@@ -30,6 +30,12 @@ $stmt->bindParam(':reseller_id', $reseller_id, PDO::PARAM_INT);
 $stmt->execute();
 $reseller = $stmt->fetch(PDO::FETCH_ASSOC);
 
+// If no reseller is found, redirect to the reseller management page
+if (!$reseller) {
+    header('location: reseller_management.php');
+    exit;
+}
+
 // Fetch clients for the reseller
 $stmt = $pdo->prepare("
     SELECT u.id, u.username, u.first_name, u.last_name, u.contact_number, u.daily_limit, u.data_usage
