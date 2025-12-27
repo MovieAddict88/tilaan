@@ -37,16 +37,16 @@ try {
         exit;
     }
 
-    // Prepare a select statement to retrieve all active profiles and their associated promo configurations
+    // Fetch all active profiles and their associated promos
     $sql = "
         SELECT
-            p.id,
+            p.id AS profile_id,
             p.name AS profile_name,
             p.ovpn_config,
-            GROUP_CONCAT(pr.promo_name SEPARATOR ', ') as promo_names,
-            GROUP_CONCAT(pr.config_text SEPARATOR '\n') as config_texts,
-            p.type as profile_type,
-            p.icon_path
+            p.type AS profile_type,
+            p.icon_path,
+            pr.promo_name,
+            pr.config_text
         FROM
             vpn_profiles p
         JOIN
@@ -55,46 +55,53 @@ try {
             promos pr ON pp.promo_id = pr.id
         WHERE
             pr.is_active = 1
-        GROUP BY
-            p.id, p.name, p.ovpn_config, p.type, p.icon_path
         ORDER BY
-            p.name ASC";
+            p.id ASC, pr.promo_name ASC";
 
     $stmt = $pdo->prepare($sql);
     $stmt->execute();
-    $profiles = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
+    $profiles = [];
     $base_url = get_base_url();
-    foreach ($profiles as &$profile) {
-        // Append aggregated promo names to profile name
-        if (!empty($profile['promo_names'])) {
-            $profile['profile_name'] .= ' (' . $profile['promo_names'] . ')';
+
+    foreach ($results as $row) {
+        $profile_id = $row['profile_id'];
+
+        // If this is the first time we've seen this profile, create its main entry
+        if (!isset($profiles[$profile_id])) {
+            $profiles[$profile_id] = [
+                'id' => $profile_id,
+                'profile_name' => $row['profile_name'],
+                'ovpn_config' => $row['ovpn_config'],
+                'profile_type' => $row['profile_type'],
+                'icon_path' => !empty($row['icon_path']) ? $base_url . $row['icon_path'] : null,
+                'ping' => rand(20, 200),
+                'signal_strength' => rand(30, 100),
+                'promos' => []
+            ];
         }
 
-        // Combine the base ovpn config with the aggregated config texts
-        $profile['profile_content'] = $profile['ovpn_config'];
-        if (!empty($profile['config_texts'])) {
-            $profile['profile_content'] .= "\n" . $profile['config_texts'];
-        }
-
-        // Unset the original config fields to keep the response clean
-        unset($profile['ovpn_config']);
-        unset($profile['config_texts']);
-        unset($profile['promo_names']);
-
-        if (!empty($profile['icon_path'])) {
-            $profile['icon_path'] = $base_url . $profile['icon_path'];
-        }
-        // Simulate ping for each profile
-        $profile['ping'] = rand(20, 200);
-        $profile['signal_strength'] = rand(30, 100);
+        // Add the current promo to this profile's list of promos
+        $profiles[$profile_id]['promos'][] = [
+            'promo_name' => $row['promo_name'],
+            'profile_content' => $row['ovpn_config'] . "\n" . $row['config_text']
+        ];
     }
+
+    // Clean up the base ovpn_config from the main profile object
+    foreach ($profiles as &$profile) {
+        unset($profile['ovpn_config']);
+    }
+
+    // Convert the associative array to a simple indexed array for the final JSON output
+    $final_profiles = array_values($profiles);
 
     // Set the content type header to application/json
     header('Content-Type: application/json');
 
     // Output the profiles as a JSON encoded string
-    echo json_encode(['status' => 'success', 'profiles' => $profiles]);
+    echo json_encode(['status' => 'success', 'profiles' => $final_profiles]);
 
 } catch (PDOException $e) {
     // Handle potential database errors
