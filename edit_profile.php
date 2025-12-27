@@ -42,7 +42,7 @@ if ($profile) {
 }
 
 // Fetch the associated promos
-$stmt_promos = $pdo->prepare('SELECT promo_id FROM profile_promos WHERE profile_id = :profile_id');
+$stmt_promos = $pdo->prepare('SELECT promo_id FROM vpn_profile_promos WHERE profile_id = :profile_id');
 $stmt_promos->bindParam(':profile_id', $profile_id, PDO::PARAM_INT);
 $stmt_promos->execute();
 $associated_promo_ids = $stmt_promos->fetchAll(PDO::FETCH_COLUMN);
@@ -81,14 +81,14 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
             if ($stmt->execute()) {
                 // Delete existing promo associations
-                $sql_delete_promos = 'DELETE FROM profile_promos WHERE profile_id = :profile_id';
+                $sql_delete_promos = 'DELETE FROM vpn_profile_promos WHERE profile_id = :profile_id';
                 $stmt_delete_promos = $pdo->prepare($sql_delete_promos);
                 $stmt_delete_promos->bindParam(':profile_id', $profile_id, PDO::PARAM_INT);
                 $stmt_delete_promos->execute();
 
                 // Insert new promo associations
                 if (!empty($_POST['promo_ids']) && is_array($_POST['promo_ids'])) {
-                    $sql_insert_promo = 'INSERT INTO profile_promos (profile_id, promo_id) VALUES (:profile_id, :promo_id)';
+                    $sql_insert_promo = 'INSERT INTO vpn_profile_promos (profile_id, promo_id) VALUES (:profile_id, :promo_id)';
                     $stmt_insert_promo = $pdo->prepare($sql_insert_promo);
 
                     foreach ($_POST['promo_ids'] as $promo_id) {

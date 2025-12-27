@@ -14,34 +14,52 @@ require_once 'db_config.php';
 $upload_message = '';
 
 // Check if a file was uploaded and a name was provided
-if (isset($_FILES['profiles_ovpn']) && isset($_POST['profile_type'])) {
-    $profile_type = trim($_POST['profile_type']);
-    $files = $_FILES['profiles_ovpn'];
-    $file_count = count($files['name']);
-    $upload_count = 0;
+if (isset($_FILES['profile_ovpn']) && isset($_POST['profile_name'])) {
+    $profile_name = trim($_POST['profile_name']);
+    $file = $_FILES['profile_ovpn'];
+    $file_name = $file['name'];
+    $file_tmp_name = $file['tmp_name'];
+    $file_size = $file['size'];
+    $file_ext = strtolower(pathinfo($file_name, PATHINFO_EXTENSION));
 
-    for ($i = 0; $i < $file_count; $i++) {
-        $file_name = $files['name'][$i];
-        $file_tmp_name = $files['tmp_name'][$i];
-        $file_size = $files['size'][$i];
-        $file_ext = strtolower(pathinfo($file_name, PATHINFO_EXTENSION));
+    if ($file_ext == 'ovpn' && $file_size <= 1000000) {
+        $ovpn_config = file_get_contents($file_tmp_name);
 
-        if ($file_ext == 'ovpn' && $file_size <= 1000000) {
-            $profile_name = pathinfo($file_name, PATHINFO_FILENAME);
-            $ovpn_config = file_get_contents($file_tmp_name);
-
+        try {
+            $pdo->beginTransaction();
             $sql = 'INSERT INTO vpn_profiles (name, ovpn_config, type) VALUES (:name, :ovpn_config, :type)';
             if ($stmt = $pdo->prepare($sql)) {
                 $stmt->bindParam(':name', $profile_name, PDO::PARAM_STR);
                 $stmt->bindParam(':ovpn_config', $ovpn_config, PDO::PARAM_STR);
-                $stmt->bindParam(':type', $profile_type, PDO::PARAM_STR);
+                $stmt->bindParam(':type', $_POST['profile_type'], PDO::PARAM_STR);
                 if ($stmt->execute()) {
-                    $upload_count++;
+                    $profile_id = $pdo->lastInsertId();
+
+                    if (!empty($_POST['promo_ids']) && is_array($_POST['promo_ids'])) {
+                        $sql_insert_promo = 'INSERT INTO vpn_profile_promos (profile_id, promo_id) VALUES (:profile_id, :promo_id)';
+                        $stmt_insert_promo = $pdo->prepare($sql_insert_promo);
+
+                        foreach ($_POST['promo_ids'] as $promo_id) {
+                            $stmt_insert_promo->bindParam(':profile_id', $profile_id, PDO::PARAM_INT);
+                            $stmt_insert_promo->bindParam(':promo_id', $promo_id, PDO::PARAM_INT);
+                            $stmt_insert_promo->execute();
+                        }
+                    }
+                    $pdo->commit();
+                    $upload_message = 'Profile uploaded successfully.';
+                } else {
+                    $pdo->rollBack();
+                    $upload_message = 'Error uploading profile.';
                 }
             }
+        } catch (Exception $e) {
+            $pdo->rollBack();
+            error_log('Error in upload_profile.php: ' . $e->getMessage());
+            $upload_message = 'An error occurred. Please try again later.';
         }
+    } else {
+        $upload_message = 'Invalid file type or size.';
     }
-    $upload_message = $upload_count . ' of ' . $file_count . ' profiles uploaded successfully.';
 }
 
 include 'header.php';
@@ -67,6 +85,28 @@ include 'header.php';
             <div class="form-group">
                 <label for="profile_ovpn">Select .ovpn file to upload:</label>
                 <input type="file" name="profile_ovpn" id="profile_ovpn" class="form-control" required>
+            </div>
+            <div class="form-group">
+                <label>Profile Type</label>
+                <select name="profile_type" class="form-control">
+                    <option value="Premium">Premium</option>
+                    <option value="Freemium">Freemium</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Promos</label>
+                <div class="checkbox-group">
+                    <?php
+                    $sql_promos = 'SELECT id, promo_name FROM promos';
+                    $promos = $pdo->query($sql_promos)->fetchAll();
+                    foreach ($promos as $promo) {
+                        echo '<div class="form-check">';
+                        echo '<input class="form-check-input" type="checkbox" name="promo_ids[]" value="' . $promo['id'] . '" id="promo_' . $promo['id'] . '">';
+                        echo '<label class="form-check-label" for="promo_' . $promo['id'] . '">' . htmlspecialchars($promo['promo_name']) . '</label>';
+                        echo '</div>';
+                    }
+                    ?>
+                </div>
             </div>
             <button type="submit" class="btn btn-primary">Upload</button>
         </form>
