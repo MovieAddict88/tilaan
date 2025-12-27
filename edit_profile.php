@@ -24,7 +24,7 @@ if (isset($_GET['id']) && !empty($_GET['id'])) {
 }
 
 // Fetch the profile from the database
-$stmt = $pdo->prepare('SELECT name, ovpn_config, type, icon_path, management_ip, management_port FROM vpn_profiles WHERE id = :id');
+$stmt = $pdo->prepare('SELECT name, ovpn_config, icon_path, management_ip, management_port FROM vpn_profiles WHERE id = :id');
 $stmt->bindParam(':id', $profile_id, PDO::PARAM_INT);
 $stmt->execute();
 $profile = $stmt->fetch();
@@ -32,7 +32,6 @@ $profile = $stmt->fetch();
 if ($profile) {
     $profile_name = $profile['name'];
     $profile_content = $profile['ovpn_config'];
-    $profile_type = $profile['type'];
     $profile_icon = $profile['icon_path'];
     $management_ip = $profile['management_ip'];
     $management_port = $profile['management_port'];
@@ -42,7 +41,7 @@ if ($profile) {
 }
 
 // Fetch the associated promos
-$stmt_promos = $pdo->prepare('SELECT promo_id FROM profile_promos WHERE profile_id = :profile_id');
+$stmt_promos = $pdo->prepare('SELECT promo_id FROM vpn_profile_promos WHERE profile_id = :profile_id');
 $stmt_promos->bindParam(':profile_id', $profile_id, PDO::PARAM_INT);
 $stmt_promos->execute();
 $associated_promo_ids = $stmt_promos->fetchAll(PDO::FETCH_COLUMN);
@@ -68,12 +67,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         try {
             $pdo->beginTransaction();
 
-            $sql = 'UPDATE vpn_profiles SET name = :profile_name, ovpn_config = :profile_content, type = :profile_type, icon_path = :icon_path, management_ip = :management_ip, management_port = :management_port WHERE id = :id';
+            $sql = 'UPDATE vpn_profiles SET name = :profile_name, ovpn_config = :profile_content, icon_path = :icon_path, management_ip = :management_ip, management_port = :management_port WHERE id = :id';
             $stmt = $pdo->prepare($sql);
 
             $stmt->bindParam(':profile_name', $profile_name, PDO::PARAM_STR);
             $stmt->bindParam(':profile_content', $profile_content, PDO::PARAM_STR);
-            $stmt->bindParam(':profile_type', $_POST['profile_type'], PDO::PARAM_STR);
             $stmt->bindParam(':icon_path', $_POST['icon_path'], PDO::PARAM_STR);
             $stmt->bindParam(':management_ip', $_POST['management_ip'], PDO::PARAM_STR);
             $stmt->bindParam(':management_port', $_POST['management_port'], PDO::PARAM_INT);
@@ -81,14 +79,14 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
             if ($stmt->execute()) {
                 // Delete existing promo associations
-                $sql_delete_promos = 'DELETE FROM profile_promos WHERE profile_id = :profile_id';
+                $sql_delete_promos = 'DELETE FROM vpn_profile_promos WHERE profile_id = :profile_id';
                 $stmt_delete_promos = $pdo->prepare($sql_delete_promos);
                 $stmt_delete_promos->bindParam(':profile_id', $profile_id, PDO::PARAM_INT);
                 $stmt_delete_promos->execute();
 
                 // Insert new promo associations
                 if (!empty($_POST['promo_ids']) && is_array($_POST['promo_ids'])) {
-                    $sql_insert_promo = 'INSERT INTO profile_promos (profile_id, promo_id) VALUES (:profile_id, :promo_id)';
+                    $sql_insert_promo = 'INSERT INTO vpn_profile_promos (profile_id, promo_id) VALUES (:profile_id, :promo_id)';
                     $stmt_insert_promo = $pdo->prepare($sql_insert_promo);
 
                     foreach ($_POST['promo_ids'] as $promo_id) {
@@ -141,13 +139,6 @@ include 'header.php';
                 <input type="hidden" name="profile_name" value="<?php echo htmlspecialchars($profile_name); ?>">
                 <input type="hidden" name="profile_content" value="<?php echo htmlspecialchars($profile_content); ?>">
             <?php endif; ?>
-            <div class="form-group">
-                <label>Profile Type</label>
-                <select name="profile_type" class="form-control">
-                    <option value="Premium" <?php echo ($profile_type == 'Premium') ? 'selected' : ''; ?>>Premium</option>
-                    <option value="Freemium" <?php echo ($profile_type == 'Freemium') ? 'selected' : ''; ?>>Freemium</option>
-                </select>
-            </div>
             <div class="form-group">
                 <label>Management IP</label>
                 <input type="text" name="management_ip" class="form-control" value="<?php echo htmlspecialchars($management_ip); ?>" placeholder="e.g., 127.0.0.1">

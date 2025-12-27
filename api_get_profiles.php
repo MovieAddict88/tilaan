@@ -41,28 +41,56 @@ try {
     if (isset($_POST['promo_id']) && !empty($_POST['promo_id'])) {
         $promo_id = $_POST['promo_id'];
 
-        // Prepare a select statement to retrieve profiles and their associated promo configurations
+        // This query will return one row per profile-promo combination for profiles that have the selected promo
         $sql = "
             SELECT
                 p.id,
                 p.name AS profile_name,
                 p.ovpn_config,
-                pr.config_text,
                 p.type as profile_type,
-                p.icon_path
+                p.icon_path,
+                pr.id as promo_id,
+                pr.promo_name,
+                pr.config_text
             FROM
                 vpn_profiles p
-            LEFT JOIN
-                promos pr ON p.promo_id = pr.id
-            WHERE
-                p.promo_id = :promo_id
+            JOIN
+                vpn_profile_promos vpp ON p.id = vpp.profile_id
+            JOIN
+                promos pr ON vpp.promo_id = pr.id
+            WHERE p.id IN (SELECT profile_id FROM vpn_profile_promos WHERE promo_id = :promo_id)
             ORDER BY
-                p.name ASC";
+                p.id ASC";
 
         $stmt = $pdo->prepare($sql);
         $stmt->bindParam(':promo_id', $promo_id, PDO::PARAM_INT);
         $stmt->execute();
-        $profiles = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        // Process the flat list into a structured array
+        $profiles_assoc = [];
+        foreach ($results as $row) {
+            $profile_id = $row['id'];
+            if (!isset($profiles_assoc[$profile_id])) {
+                $profiles_assoc[$profile_id] = [
+                    'id' => $row['id'],
+                    'profile_name' => $row['profile_name'],
+                    'ovpn_config' => $row['ovpn_config'],
+                    'profile_type' => $row['profile_type'],
+                    'icon_path' => $row['icon_path'],
+                    'promos' => [],
+                ];
+            }
+            if ($row['promo_id']) {
+                $profiles_assoc[$profile_id]['promos'][] = [
+                    'id' => $row['promo_id'],
+                    'promo_name' => $row['promo_name'],
+                    'config_text' => $row['config_text'],
+                ];
+            }
+        }
+        $profiles = array_values($profiles_assoc);
+
     } else {
         // If no promo_id is provided, return an empty list of profiles.
         $profiles = [];
@@ -70,13 +98,6 @@ try {
 
     $base_url = get_base_url();
     foreach ($profiles as &$profile) {
-        // Combine the base ovpn config with the promo's config text
-        $profile['profile_content'] = $profile['ovpn_config'] . "\n" . $profile['config_text'];
-
-        // Unset the original config fields to keep the response clean
-        unset($profile['ovpn_config']);
-        unset($profile['config_text']);
-
         if (!empty($profile['icon_path'])) {
             $profile['icon_path'] = $base_url . $profile['icon_path'];
         }
