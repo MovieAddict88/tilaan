@@ -43,8 +43,8 @@ try {
             p.id,
             p.name AS profile_name,
             p.ovpn_config,
-            pr.promo_name,
-            pr.config_text,
+            GROUP_CONCAT(pr.promo_name SEPARATOR ', ') as promo_names,
+            GROUP_CONCAT(pr.config_text SEPARATOR '\n') as config_texts,
             p.type as profile_type,
             p.icon_path
         FROM
@@ -55,8 +55,10 @@ try {
             promos pr ON pp.promo_id = pr.id
         WHERE
             pr.is_active = 1
+        GROUP BY
+            p.id, p.name, p.ovpn_config, p.type, p.icon_path
         ORDER BY
-            p.name ASC, pr.promo_name ASC";
+            p.name ASC";
 
     $stmt = $pdo->prepare($sql);
     $stmt->execute();
@@ -64,16 +66,21 @@ try {
 
     $base_url = get_base_url();
     foreach ($profiles as &$profile) {
-        // Append promo name to profile name to distinguish them in the app
-        $profile['profile_name'] .= ' (' . $profile['promo_name'] . ')';
+        // Append aggregated promo names to profile name
+        if (!empty($profile['promo_names'])) {
+            $profile['profile_name'] .= ' (' . $profile['promo_names'] . ')';
+        }
 
-        // Combine the base ovpn config with the promo's config text
-        $profile['profile_content'] = $profile['ovpn_config'] . "\n" . $profile['config_text'];
+        // Combine the base ovpn config with the aggregated config texts
+        $profile['profile_content'] = $profile['ovpn_config'];
+        if (!empty($profile['config_texts'])) {
+            $profile['profile_content'] .= "\n" . $profile['config_texts'];
+        }
 
         // Unset the original config fields to keep the response clean
         unset($profile['ovpn_config']);
-        unset($profile['config_text']);
-        unset($profile['promo_name']);
+        unset($profile['config_texts']);
+        unset($profile['promo_names']);
 
         if (!empty($profile['icon_path'])) {
             $profile['icon_path'] = $base_url . $profile['icon_path'];

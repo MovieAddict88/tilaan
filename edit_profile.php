@@ -176,16 +176,19 @@ include 'header.php';
             </div>
             <div class="form-group">
                 <label>Promos</label>
-                <select name="promo_ids[]" class="form-control" multiple>
+                <div class="checkbox-group">
                     <?php
                     $sql_promos = 'SELECT id, promo_name FROM promos';
                     $promos = $pdo->query($sql_promos)->fetchAll();
                     foreach ($promos as $promo) {
-                        $selected = in_array($promo['id'], $associated_promo_ids) ? 'selected' : '';
-                        echo '<option value="' . $promo['id'] . '" ' . $selected . '>' . htmlspecialchars($promo['promo_name']) . '</option>';
+                        $checked = in_array($promo['id'], $associated_promo_ids) ? 'checked' : '';
+                        echo '<div class="form-check">';
+                        echo '<input class="form-check-input" type="checkbox" name="promo_ids[]" value="' . $promo['id'] . '" id="promo_' . $promo['id'] . '" ' . $checked . '>';
+                        echo '<label class="form-check-label" for="promo_' . $promo['id'] . '">' . htmlspecialchars($promo['promo_name']) . '</label>';
+                        echo '</div>';
                     }
                     ?>
-                </select>
+                </div>
             </div>
             <div class="form-group">
                 <input type="submit" class="btn btn-primary" value="Submit">
